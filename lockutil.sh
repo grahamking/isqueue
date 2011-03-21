@@ -16,14 +16,18 @@
 # 
 # For the full licence see <http://www.gnu.org/licenses/>.
 
-# isqueue
-# Usage: produce.sh queue_name "message"
-#
+# lockfile-create and lockfile-remove are in package lockfile-progs in Debian / Ubuntu
 
-QUEUE=/var/spool/isqueue/$1.queue
+acquire_lock() {
 
-source lockutil.sh
+    lockfile-create --use-pid --quiet --retry 0 $QUEUE 
+    while [ $? -ne 0 ]; do
+        sleep 0.05
+        lockfile-create --use-pid --quiet --retry 0 $QUEUE 
+    done
+}
 
-acquire_lock
-echo $2 >> $QUEUE
-release_lock
+release_lock() {
+    lockfile-remove $QUEUE
+}
+

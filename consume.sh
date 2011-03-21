@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This file is part of isqueue: https://github.com/grahamking/isqueue
+
 # Copyright 2011 Graham King <graham@gkgk.org>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,26 +20,6 @@
 # Usage: consume.sh -q queue_name script_name
 # Example consume.sh -q fetch_thumb "/usr/local/proj/manage.py fetch_thumb"
 
-acquire_lock() {
-
-    if [ $IS_LOCK -eq 0 ]; then
-        return
-    fi
-
-    while [ -f $LOCK ]; do
-        sleep 0.1
-    done
-    touch $LOCK
-}
-
-release_lock() {
-    if [ $IS_LOCK -eq 0 ]; then
-        return
-    fi
-
-    rm $LOCK
-}
-
 # Starts command with a single message from the queue
 process_single() {
     acquire_lock
@@ -45,9 +27,9 @@ process_single() {
     # Read next message from queue
     local param=`head -1 $QUEUE`
 
-    # Remove that message from queue
+    # Remove that message from queue.
     # This has the side effect of triggering incron to start another
-    # process, until we reach max process count
+    # process, until we reach max process count.
     printf '%s\n' 1d w | ed -s $QUEUE 
 
     release_lock
@@ -61,33 +43,27 @@ process_single() {
 #
 
 ME=`basename $0`
-USAGE="Usage: $ME [-nl] [-p <num_procs>] -q <queue_name> <command>"
+USAGE="Usage: $ME [-p <num_procs>] -q <queue_name> <command>"
 
 QUEUE_DIR=/var/spool/isqueue/
 QUEUE_NAME=''
-
-# Lock access to the queue? Defaults to false.
-IS_LOCK=0
 
 # Max number of processes
 PROCS=2
 
 # Parse command line arguments
 # See: http://unmaintainable.wordpress.com/2007/08/05/cmdline-options-in-shell-scripts/
-while getopts lhq:p: OPT; do
+while getopts hq:p: OPT; do
     case "$OPT" in
-        h)
-            echo $USAGE
-            exit 0
-            ;;
-        l)
-            IS_LOCK=1
-            ;;
         q)
             QUEUE_NAME=$OPTARG
             ;;
         p)
             PROCS=$OPTARG
+            ;;
+        h)
+            echo $USAGE
+            exit 0
             ;;
         \?)
             # getopts issues an error message
@@ -110,7 +86,9 @@ fi
 COMMAND=$1
 
 QUEUE=${QUEUE_DIR}${QUEUE_NAME}.queue
-LOCK=${QUEUE_DIR}${QUEUE_NAME}.lock
+
+# Get acquire_lock and release_lock functions
+source lockutil.sh
 
 NUM_RUNNING=`pgrep -c "$ME"`
 while [ -s $QUEUE -a $NUM_RUNNING -le $PROCS ]; do
