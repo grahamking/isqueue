@@ -4,8 +4,6 @@ Sending a message is simply appending a line to the end of a spool file. inotify
 
 Add a bit of locking (_mkdir_ would work, but we use tools from lockfile-progs package), and you have a functional queueing system.
 
-Here's a setup example assuming you want to put urls on your queue - say you want to fetch thumbnails for those urls.
-
 **Dependencies**
 
     sudo apt-get install libnotify-bin incron lockfile-progs
