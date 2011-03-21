@@ -22,7 +22,7 @@
 
 QUEUE=/var/spool/isqueue/$1.queue
 
-source lockutil.sh
+source /usr/local/bin/isq-lockutil.sh
 
 acquire_lock
 echo $2 >> $QUEUE

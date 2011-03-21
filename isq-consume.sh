@@ -34,7 +34,6 @@ process_single() {
 
     release_lock
 
-    echo $COMMAND "$param"
     $COMMAND "$param"
 }
 
@@ -88,11 +87,11 @@ COMMAND=$1
 QUEUE=${QUEUE_DIR}${QUEUE_NAME}.queue
 
 # Get acquire_lock and release_lock functions
-source lockutil.sh
+source /usr/local/bin/isq-lockutil.sh
 
-NUM_RUNNING=`pgrep -c "$ME"`
+NUM_RUNNING=`/usr/bin/pgrep -c "$ME"`
 while [ -s $QUEUE -a $NUM_RUNNING -le $PROCS ]; do
     process_single
-    NUM_RUNNING=`pgrep -c "$ME"`
+    NUM_RUNNING=`/usr/bin/pgrep -c "$ME"`
 done
 
