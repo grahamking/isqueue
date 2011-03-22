@@ -81,7 +81,7 @@ elif [ ${CMD} == 'get' ]; then
     SCRIPT=$3
 
     PROCS=2     # Max number of processes.
-    if [$# -eq 4]; then
+    if [ $# -eq 4 ]; then
         PROCS=$4
     fi
 
