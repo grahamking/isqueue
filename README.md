@@ -32,9 +32,9 @@ The first parameters to _put_ is the name of the queue, the next the message to 
 
 **Setup a message consumer**
 
-We have some messages waiting in our queue, now we need to pick them up and process them. A message consumer is simply a program that expects the queue message is it's last or only argument.
+We have some messages waiting in our queue, now we need to pick them up and process them. A message consumer is simply a program that expects the queue message as it's last or only argument.
 
-Copy this into an identify.sh file, and make it executable. It uses _curl_ to fetch a URL's headers, and display the Server line, so you can see if that website runs nginx, apache, etc.
+Copy this into identify.sh, and make it executable. It uses _curl_ to fetch a URL's headers, and display the Server line, so you can see if that website runs nginx, apache, etc.
 
     #!/bin/bash
     URL=$1
@@ -62,10 +62,6 @@ Add this line: `/var/spool/isqueue/server_type.queue IN_MODIFY /usr/local/bin/is
 
 The next time your queue is modified, your listener will wake up. Whilst still tailing /tmp/out.log, do `isq put server_type mozilla.org`
 
-**Monitor**
-
-The beauty of your queues being just files is that `wc -l /var/spool/isqueue/server_type.queue` will tell you how many messages are waiting.
-
 **Network**
 
 Most likely you want to run your background jobs on a different machine to your website or foreground tasks. We wire a TCP port (1550 by default) to the `isq put` script using netcat, and use upstart to make it a daemon. We copied the upstart config in the Install step above, so just start the server: 
@@ -85,6 +81,10 @@ Or in Python:
     s.close()
 
 In both cases you should see the result appear in /tmp/out.log
+
+**Monitor**
+
+The beauty of your queues being just files is that `wc -l /var/spool/isqueue/server_type.queue` will tell you how many messages are waiting.
 
 ##Misc.##
 
