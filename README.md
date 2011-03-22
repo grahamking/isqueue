@@ -64,7 +64,17 @@ Most likely you want to run your background jobs on a different machine to your 
     sudo cp isq-produce-server.conf /etc/init/
     sudo start isq-produce-server
 
+Putting a message on the queue is simply writing text to the socket:
+
     echo "server_type github.com" | nc 127.0.0.1 1234
+
+Or in Python:
+
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect(('127.0.0.1', 1234))
+    s.send('server_type gs.com')
+    s.close()
 
 You should see the result appear in /tmp/out.log
 
