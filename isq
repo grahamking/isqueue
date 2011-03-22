@@ -1,0 +1,98 @@
+#!/bin/bash
+
+
+# Copyright 2011 Graham King <graham@gkgk.org>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# For the full licence see <http://www.gnu.org/licenses/>.
+
+# This file is part of isqueue: https://github.com/grahamking/isqueue
+
+# Put a message on the queue:
+#    isq put queue_name "My message here"
+
+# Get and remove a message from the queue:
+#   isq get queue_name /path/cmd.sh
+
+process_single() {
+
+    acquire_lock
+    local param=`head -1 $QUEUE`    # Read next message from queue
+    # This has the side effect of triggering incron to start another
+    # process, until we reach max process count.
+    printf '%s\n' 1d w | ed -s $QUEUE   # Remove that message from queue.
+    release_lock
+
+    $SCRIPT "$param"    # Run it!
+}
+
+acquire_lock() {
+    lockfile-create --use-pid --quiet --retry 0 $QUEUE 
+    while [ $? -ne 0 ]; do
+        sleep 0.05
+        lockfile-create --use-pid --quiet --retry 0 $QUEUE 
+    done
+}
+
+release_lock() {
+    lockfile-remove $QUEUE
+}
+
+show_usage_and_quit() {
+    ME=`basename $0`
+    USAGE="Usage: $ME get|put <queue_name> <command> [<num_procs>]"
+    echo $USAGE >&2
+    exit 1
+}
+
+#
+# MAIN
+#
+
+QUEUE_DIR=/var/spool/isqueue/
+
+# We want at least three arguments.
+if [ $# -lt 3 ]; then
+    show_usage_and_quit
+fi
+
+CMD=$1
+QUEUE_NAME=$2
+QUEUE=${QUEUE_DIR}${QUEUE_NAME}.queue
+
+if [ ${CMD} == 'put' ]; then
+
+    MSG=$3
+    acquire_lock
+    echo $MSG >> ${QUEUE}
+    release_lock
+
+elif [ ${CMD} == 'get' ]; then
+
+    SCRIPT=$3
+
+    PROCS=2     # Max number of processes.
+    if [$# -eq 4]; then
+        PROCS=$4
+    fi
+
+    ME=`basename $0`
+    NUM_RUNNING=`/usr/bin/pgrep -c "$ME"`
+    while [ -s $QUEUE -a $NUM_RUNNING -le $PROCS ]; do
+        process_single
+        NUM_RUNNING=`/usr/bin/pgrep -c "$ME"`
+    done
+
+else
+    show_usage_and_quit
+fi
+
