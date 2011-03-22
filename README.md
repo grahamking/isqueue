@@ -11,12 +11,10 @@ Dependencies:
 Install:
 
     git clone git://github.com/grahamking/isqueue.git
-    sudo cp isq /usr/local/bin/
-    sudo chmod a+x /usr/local/bin/isq
+    cd isqueue
+    sudo cp isq /usr/local/bin/ ; sudo chmod a+x /usr/local/bin/isq
+    sudo mkdir /var/spool/isqueue ; sudo chmod a+w /var/spool/isqueue
     sudo cp isq-put-server.conf /etc/init/
-    sudo mkdir /var/spool/isqueue
-
-Give the relevant user permissions to read / write in /var/spool/isqueue.
 
 ##Usage##
 
@@ -28,24 +26,23 @@ Give the relevant user permissions to read / write in /var/spool/isqueue.
 
 This creates a queue called 'server_type', and add those three urls to it. Take a look: `cat /var/spool/isqueue/server_type.queue`.
 
-The first parameters to _put_ is the name of the queue, the next the message to put on that queue. The queue is just a text file, so you can put strings, JSON, whatever, as long as it's one message per line. All `isq put` is doing is locking access to the queue file, appending to it, and releasing the lock.
+The first parameters to _put_ is the name of the queue, the next the message to put on that queue. The queue is just a text file, so you can put strings, JSON, whatever, as long as it's one message per line. All `isq put` does is lock access to the queue file, append to it, then release the lock.
 
 **Setup a message consumer**
 
 We have some messages waiting in our queue, now we need to pick them up and process them. A message consumer is simply a program that expects the queue message as it's last or only argument.
 
-Copy this into identify.sh, and make it executable. It uses _curl_ to fetch a URL's headers, and display the Server line, so you can see if that website runs nginx, apache, etc.
+Here's an example consumer for testing. Create an identify.sh with the contents below, and make it executable. It uses _curl_ to fetch a URL's headers, and display the Server line, so you can see if that website runs nginx, apache, etc.
 
     #!/bin/bash
     URL=$1
     S_TYPE=`curl -s --head $URL | grep Server`
     echo $URL $S_TYPE >> /tmp/out.log
 
-Watch the log file: `tail -f /tmp/out.log`
 
 Read from the queue: `isq get server_type ./identify.sh`
 
-You should see output in /tmp/log, and your queue should now be empty.
+Watch the log file: `tail -f /tmp/out.log`. You should see output, and your queue should now be empty.
 
 **Watch the queue with inotify**
 
@@ -61,6 +58,8 @@ Now edit the incron crontab: `incrontab -e`
 Add this line: `/var/spool/isqueue/server_type.queue IN_MODIFY /usr/local/bin/isq get server_type /home/<you>/identify.sh`
 
 The next time your queue is modified, your listener will wake up. Whilst still tailing /tmp/out.log, do `isq put server_type mozilla.org`
+
+If you don't see any output in /tmp/out.log, check syslog. incron logs the command it tries to run in there. `sudo tail -f /var/log/syslog`.
 
 **Network**
 
